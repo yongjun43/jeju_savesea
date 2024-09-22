@@ -5,5 +5,7 @@ from . import views
 app_name = 'map'
 
 urlpatterns = [
-    path('', views.jeju_map, name='jeju_map'),
+    path('', views.index, name='index_map'),
+    path("move", views.move, name='move_map'),
+    path("poi", views.poi, name='poi_map'),
 ]
