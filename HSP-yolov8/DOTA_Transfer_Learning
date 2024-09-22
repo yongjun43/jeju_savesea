@@ -1,0 +1,26 @@
+rf = Roboflow(api_key="pQTN1BrSaoa8rZTUVzF9")
+project = rf.workspace("yolo-experiment-sara-rahimi").project("dota-4ovzh")
+version = project.version(1)
+dataset = version.download("yolov8")
+
+# 체크포인트 로드 및 모델 설정
+checkpoint_path = '/content/best.pt'
+if os.path.isfile(checkpoint_path):
+    checkpoint = torch.load(checkpoint_path, map_location=torch.device('cpu'))
+    model.model.load_state_dict(checkpoint['model'].state_dict(), strict=False)
+
+# 데이터셋 경로 설정
+data_path = "/content/DOTA-1/data.yaml"
+
+# 학습 설정
+epochs = 50
+batch_size = 16
+
+# 모델 학습
+train_results = model.train(data=data_path, epochs=epochs, batch=batch_size)
+
+# 결과 모델 저장 경로 지정 및 디렉토리 생성
+model_save_dir = '/content/drive/My Drive/trained_models'
+os.makedirs(model_save_dir, exist_ok=True)
+model_save_path = os.path.join(model_save_dir, 'yolov8_trained.pt')
+torch.save(model.state_dict(), model_save_path)

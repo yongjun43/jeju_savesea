@@ -1,0 +1,119 @@
+class FocalLoss(nn.Module):
+    """ Focal Loss for addressing class imbalance by reducing the relative loss for well-classified examples and focusing more on hard, misclassified examples """
+    def __init__(self, alpha=0.25, gamma=2.0):
+        super(FocalLoss, self).__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+
+    def forward(self, inputs, targets):
+        BCE_loss = F.binary_cross_entropy_with_logits(inputs, targets, reduction='none')
+        pt = torch.exp(-BCE_loss)
+        F_loss = self.alpha * (1 - pt) ** self.gamma * BCE_loss
+        return F_loss.mean()
+
+class ConvBlock(nn.Module):
+    """ Standard convolutional block with Conv2D, Batch Normalization, and SiLU activation """
+    def __init__(self, in_channels, out_channels, kernel_size, stride):
+        super(ConvBlock, self).__init__()
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride=stride, padding=kernel_size//2)
+        self.bn = nn.BatchNorm2d(out_channels)
+        self.silu = nn.SiLU()
+
+    def forward(self, x):
+        return self.silu(self.bn(self.conv(x)))
+
+class SPPF(nn.Module):
+    """ Spatial Pyramid Pooling - Fast version that pools features at different scales and concatenates them together """
+    def __init__(self, in_channels):
+        super(SPPF, self).__init__()
+        self.maxpool_1 = nn.MaxPool2d(kernel_size=5, stride=1, padding=2)
+        self.maxpool_2 = nn.MaxPool2d(kernel_size=9, stride=1, padding=4)
+        self.maxpool_3 = nn.MaxPool2d(kernel_size=13, stride=1, padding=6)
+
+    def forward(self, x):
+        x1 = self.maxpool_1(x)
+        x2 = self.maxpool_2(x)
+        x3 = self.maxpool_3(x)
+        return torch.cat([x, x1, x2, x3], 1)
+
+def ciou_loss(preds, targets):
+    # 각 바운딩 박스의 좌표
+    b1_x1, b1_y1, b1_x2, b1_y2 = preds[:, 0], preds[:, 1], preds[:, 2], preds[:, 3]
+    b2_x1, b2_y1, b2_x2, b2_y2 = targets[:, 0], targets[:, 1], targets[:, 2], targets[:, 3]
+
+    # 교차 영역
+    inter_rect_x1 = torch.max(preds[..., 0], targets[..., 0])
+    inter_rect_y1 = torch.max(preds[..., 1], targets[..., 1])
+    inter_rect_x2 = torch.min(preds[..., 2], targets[..., 2])
+    inter_rect_y2 = torch.min(preds[..., 3], targets[..., 3])
+    inter_width = torch.clamp(inter_rect_x2 - inter_rect_x1, min=0)
+    inter_height = torch.clamp(inter_rect_y2 - inter_rect_y1, min=0)
+    intersection = inter_width * inter_height
+
+    # 각 박스의 넓이와 높이
+    b1_width = b1_x2 - b1_x1
+    b1_height = b1_y2 - b1_y1
+    b2_width = b2_x2 - b2_x1
+    b2_height = b2_y2 - b2_y1
+
+    # 박스의 면적
+    b1_area = b1_width * b1_height
+    b2_area = b2_width * b2_height
+    union = b1_area + b2_area - intersection
+
+    # IoU 계산
+    iou = intersection / (union + 1e-6)
+
+    # 박스 중심점
+    b1_center_x = (b1_x1 + b1_x2) / 2
+    b1_center_y = (b1_y1 + b1_y2) / 2
+    b2_center_x = (b2_x1 + b2_x2) / 2
+    b2_center_y = (b2_y1 + b2_y2) / 2
+    center_distance = torch.pow(b1_center_x - b2_center_x, 2) + torch.pow(b1_center_y - b2_center_y, 2)
+
+    # 최소 및 최대 점
+    enclosing_x1 = torch.min(b1_x1, b2_x1)
+    enclosing_y1 = torch.min(b1_y1, b2_y1)
+    enclosing_x2 = torch.max(b1_x2, b2_x2)
+    enclosing_y2 = torch.max(b1_y2, b2_y2)
+    enclosing_distance = torch.pow(enclosing_x2 - enclosing_x1, 2) + torch.pow(enclosing_y2 - enclosing_y1, 2)
+
+    # 종횡비 조정
+    v = (4 / pi ** 2) * torch.pow(torch.atan(b2_width / (b2_height + 1e-6)) - torch.atan(b1_width / (b1_height + 1e-6)), 2)
+    alpha = v / (1 - iou + v)
+
+    # CIoU 계산
+    ciou = iou - (center_distance / (enclosing_distance + 1e-6) + alpha * v)
+    return 1 - ciou
+
+
+class YOLOLoss(nn.Module):
+    def __init__(self, alpha=0.25, gamma=2.0):
+        super(YOLOLoss, self).__init__()
+        self.ciou_loss = ciou_loss  # CIoU loss for bounding box regression
+        self.focal_loss = FocalLoss(alpha, gamma)  # Focal loss for classification
+
+    def forward(self, preds_list, targets):
+        total_loss = 0
+        for preds in preds_list:  # 각 스케일의 예측 값에 대해 처리
+            batch_size = preds.size(0)
+
+            # 예측 값 분리: 바운딩 박스 좌표와 클래스 예측
+            # 예: [batch_size, num_anchors, H, W, 5 + num_classes] 중 바운딩 박스는 처음 4개, 클래스는 그 이후
+            # 각 스케일마다 예측이 다르므로, 여기에 맞춰 인덱싱
+            preds_boxes = preds[..., :4]  # 바운딩 박스 좌표
+            preds_classes = preds[..., 4:]  # 클래스 예측 값
+
+            for i in range(batch_size):  # 각 배치별로
+                target_boxes = targets[i][..., :4]  # 타겟 바운딩 박스 좌표
+                target_classes = targets[i][..., 4:]  # 타겟 클래스 레이블
+
+                # CIoU 손실 계산
+                loc_loss = self.ciou_loss(preds_boxes[i], target_boxes)
+
+                # Focal 손실 계산
+                cls_loss = self.focal_loss(preds_classes[i], target_classes)
+
+                total_loss += loc_loss + cls_loss
+
+        return total_loss

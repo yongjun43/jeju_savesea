@@ -1,0 +1,18 @@
+!pip install geopy folium
+!pip install geopy pandas
+
+
+import pandas as pdfrom geopy.distance import geodesic
+import folium
+from folium.plugins import MarkerCluster
+import pandas as pd
+from geopy.geocoders import Nominatim
+from geopy.extra.rate_limiter import RateLimiter
+
+
+import pandas as pd
+from geopy.distance import geodesic
+import folium
+from folium.plugins import MarkerCluster
+from google.colab import files
+import io

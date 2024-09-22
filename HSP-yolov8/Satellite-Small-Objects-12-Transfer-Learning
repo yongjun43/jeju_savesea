@@ -1,0 +1,15 @@
+rf = Roboflow(api_key="pQTN1BrSaoa8rZTUVzF9")
+project = rf.workspace("chargepoly").project("vehicle-detection-from-satellite")
+version = project.version(1)
+dataset = version.download("yolov8")
+
+model.train(
+    data= '/content/Satellite-Small-Objects-12/data.yaml', 
+    epochs=10,
+    imgsz=640,
+    batch=16,
+    name='car_yolo',
+    exist_ok=True,
+    project='/content/drive/MyDrive/jeju/trained_models',
+    device=0 
+)

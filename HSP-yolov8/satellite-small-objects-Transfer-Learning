@@ -1,0 +1,121 @@
+rf = Roboflow(api_key="pQTN1BrSaoa8rZTUVzF9")
+project = rf.workspace("sakin").project("satellite-small-objects")
+version = project.version(12)
+dataset = version.download("yolov8")
+
+
+dataset_dir = '/content/Satellite-Small-Objects-12'
+train_dir = os.path.join(dataset_dir, 'train')
+valid_dir = os.path.join(dataset_dir, 'valid')
+test_dir = os.path.join(dataset_dir, 'test') 
+
+
+def filter_classes(data_dir, classes_to_keep):
+    label_dir = os.path.join(data_dir, 'labels')
+    for label_file in os.listdir(label_dir):
+        label_path = os.path.join(label_dir, label_file)
+        with open(label_path, 'r') as file:
+            lines = file.readlines()
+        with open(label_path, 'w') as file:
+            for line in lines:
+                if any(cls in line for cls in classes_to_keep):
+                    file.write(line)
+
+def remap_class_ids(data_dir, original_ids, new_ids):
+    label_dir = os.path.join(data_dir, 'labels')
+    for label_file in os.listdir(label_dir):
+        label_path = os.path.join(label_dir, label_file)
+        with open(label_path, 'r') as file:
+            lines = file.readlines()
+        with open(label_path, 'w') as file:
+            for line in lines:
+                parts = line.strip().split()
+                if parts:
+                    cls_id = parts[0]
+                    if cls_id in original_ids:
+                        new_cls_id = new_ids[original_ids.index(cls_id)]
+                        parts[0] = str(new_cls_id)
+                        file.write(' '.join(parts) + '\n')
+
+backup_dir = os.path.join(dataset_dir, 'labels_backup')
+shutil.copytree(os.path.join(train_dir, 'labels'), os.path.join(backup_dir, 'train', 'labels'), dirs_exist_ok=True)
+shutil.copytree(os.path.join(valid_dir, 'labels'), os.path.join(backup_dir, 'valid', 'labels'), dirs_exist_ok=True)
+if os.path.exists(os.path.join(test_dir, 'labels')):
+    shutil.copytree(os.path.join(test_dir, 'labels'), os.path.join(backup_dir, 'test', 'labels'), dirs_exist_ok=True)
+print("Backup of label files completed.")
+
+
+classes_to_keep = ['2', '10']  # Original class IDs for 'car' and 'truck'
+filter_classes(train_dir, classes_to_keep)
+filter_classes(valid_dir, classes_to_keep)
+if os.path.exists(test_dir):
+    filter_classes(test_dir, classes_to_keep)
+print("Filtered label files to keep only 'car' and 'truck' classes.")
+
+original_ids = ['2', '10']
+new_ids = ['0', '1']
+remap_class_ids(train_dir, original_ids, new_ids)
+remap_class_ids(valid_dir, original_ids, new_ids)
+if os.path.exists(test_dir):
+    remap_class_ids(test_dir, original_ids, new_ids)
+print("Remapped class IDs successfully.")
+
+data_yaml_path = os.path.join(dataset_dir, 'data.yaml')
+with open(data_yaml_path, 'r') as yamlfile:
+    data_yaml = yaml.safe_load(yamlfile)
+
+data_yaml['train'] = os.path.join(dataset_dir, 'train', 'images')
+data_yaml['val'] = os.path.join(dataset_dir, 'valid', 'images')
+data_yaml['test'] = os.path.join(dataset_dir, 'test', 'images') 
+
+data_yaml['names'] = ['car', 'truck']
+data_yaml['nc'] = 2
+
+with open(data_yaml_path, 'w') as yamlfile:
+    yaml.dump(data_yaml, yamlfile, default_flow_style=False)
+print("Updated data.yaml with absolute paths.")
+
+for split in ['train', 'val', 'test']:
+    images_path = data_yaml.get(split, None)
+    if images_path:
+        if os.path.exists(images_path):
+            print(f"{split.capitalize()} images directory exists: {images_path}")
+            print(f"Number of images in {split}: {len(os.listdir(images_path))}")
+        else:
+            print(f"Error: {split.capitalize()} images directory does NOT exist: {images_path}")
+
+def validate_labels(data_dir):
+    label_dir = os.path.join(data_dir, 'labels')
+    for label_file in os.listdir(label_dir):
+        label_path = os.path.join(label_dir, label_file)
+        with open(label_path, 'r') as file:
+            lines = file.readlines()
+        for line in lines:
+            cls_id = line.strip().split()[0]
+            if cls_id not in ['0', '1']:
+                print(f"Invalid class ID {cls_id} in {label_path}")
+                return False
+    return True
+
+valid_train = validate_labels(train_dir)
+valid_val = validate_labels(valid_dir)
+valid_test = validate_labels(test_dir) if os.path.exists(test_dir) else True
+
+if valid_train and valid_val and valid_test:
+    print("All label files are valid.")
+else:
+    print("Some label files contain invalid class IDs.")
+
+model = YOLO('yolov8n.pt')
+
+model.train(
+    data=data_yaml_path,
+    epochs=10,
+    imgsz=640,
+    batch=16,
+    name='car_yolo',
+    exist_ok=True,
+    project='/content/drive/MyDrive/jeju/trained_models',
+    device=0,
+    augment=True 
+)
