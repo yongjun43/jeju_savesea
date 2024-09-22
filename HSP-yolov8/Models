@@ -1,15 +1,37 @@
-# ConvBlock
-## 합성곱(Convolution), 배치 정규화(Batch Normalization), SiLU 활성화 함수를 포함한 합성곱 블록을 정의합니다.
+# ai-economia
 
-class ConvBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size, stride):
-        super(ConvBlock, self).__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride=stride, padding=kernel_size//2)
-        self.bn = nn.BatchNorm2d(out_channels)
-        self.silu = nn.SiLU()
+## RAG
 
-    def forward(self, x):
-        return self.silu(self.bn(self.conv(x)))
+
+
+### Requirements
+      datasets
+      install -q openai langchain tiktoken faiss-cpu sentence-transformers langchain-community langchain-core
+      konlpy
+      faiss-cpu
+      langchain_openai
+      openai==0.28
+      from langchain.vectorstores import FAISS
+      faiss
+      numpy
+      openai
+
+
+
+
+ConvBlock
+
+합성곱(Convolution), 배치 정규화(Batch Normalization), SiLU 활성화 함수를 포함한 합성곱 블록을 정의합니다.
+
+        class ConvBlock(nn.Module):
+            def __init__(self, in_channels, out_channels, kernel_size, stride):
+                super(ConvBlock, self).__init__()
+                self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride=stride, padding=kernel_size//2)
+                self.bn = nn.BatchNorm2d(out_channels)
+                self.silu = nn.SiLU()
+        
+            def forward(self, x):
+                return self.silu(self.bn(self.conv(x)))
 
 class SPPF(nn.Module):
     def __init__(self, in_channels):
