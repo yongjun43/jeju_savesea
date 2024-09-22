@@ -1,0 +1,89 @@
+!git clone https://github.com/sanghyun-son/EDSR-PyTorch /content/drive/MyDrive/EDSR-PyTorch
+!wget -P /content/drive/MyDrive/EDSR http://data.vision.ee.ethz.ch/cvl/DIV2K/DIV2K_valid_LR_bicubic_X2.zip
+
+!pip install torch
+!pip install numpy
+!pip install scikit-image
+!pip install imageio
+!pip install matplotlib
+!pip install tqdm
+!pip install opencv-python
+
+import zipfile
+import os
+
+# ZIP 파일 경로와 추출할 경로 설정
+zip_file_path = '/content/drive/MyDrive/EDSR/DIV2K_train_LR_bicubic_X2.zip'
+extract_path = '/content/drive/MyDrive/EDSR/DIV2K'
+
+# 추출할 디렉토리 생성
+os.makedirs(extract_path, exist_ok=True)
+
+# ZIP 파일 열기 및 추출
+with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
+    zip_ref.extractall(extract_path)
+
+print("ZIP 파일이 Google Drive에 추출되었습니다.")
+
+%cd /content/drive/MyDrive/EDSR-PyTorch/src
+!sh demo.sh
+
+!python /content/drive/MyDrive/EDSR-PyTorch/src/main.py --model EDSR --scale 4 --save /content/drive/MyDrive/edsr_baseline_x4 --reset --pre_train /content/drive/MyDrive/EDSR-PyTorch/experiment/edsr_baseline_x2/model/model_best.pt
+
+!python /content/drive/MyDrive/EDSR-PyTorch/src/main.py --data_test Demo --dir_demo /content/drive/MyDrive/gaussianblur/deblur --scale 2 --pre_train /content/drive/MyDrive/EDSR-PyTorch/experiment/edsr_baseline_x2/model/model_best.pt --test_only --save_results --save /content/drive/MyDrive/edsr_results
+
+import cv2
+import numpy as np
+from google.colab.patches import cv2_imshow
+
+img = cv2.imread("/content/drive/MyDrive/NAFNet_results/denoise/08종달리_denoise.png")
+
+img_ycrcb = cv2.cvtColor(img, cv2.COLOR_BGR2YCrCb)
+
+img_f = img_ycrcb[:, :, 0].astype(np.float32)
+
+img_blr = cv2.GaussianBlur(img_f, (0, 0), 1.0)
+
+img_ycrcb[:, :, 0] = np.clip(2.0*img_f - img_blr, 0, 255).astype(np.uint8)
+
+dst = cv2.cvtColor(img_ycrcb, cv2.COLOR_YCrCb2BGR)
+
+cv2_imshow(img)
+cv2_imshow(dst)
+cv2.waitKey()
+cv2.destroyAllWindows()
+
+from google.colab.patches import cv2_imshow
+img = cv2.imread('/content/drive/MyDrive/gaussianblur/deblur/08종달리해수욕장_denoise_gassi.png')
+
+#cv2.blur(img, kernelSize)
+dst = cv2.blur(img, (7,7))
+
+cv2_imshow(img)
+cv2_imshow(dst)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+from google.colab.patches import cv2_imshow
+
+img = cv2.imread('/content/drive/MyDrive/NAFNet_results/denoise/08종달리_denoise.png')
+
+# 블러 강도를 줄일수록 선명한 결과 ex) 5
+blr = cv2.GaussianBlur(img, (5,5), 3)  #f'(x)
+# 계수를 증가하여 강조 ex) 2.0
+dst = np.clip(2.5*img - blr, 0, 255).astype('uint8')  #2*f(x) - f'(x)
+
+cv2_imshow(dst)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+import cv2
+from google.colab.patches import cv2_imshow
+img = cv2.imread('/content/drive/MyDrive/gaussianblur/deblur/sharpened_image.png')
+dst = cv2.bilateralFilter(img, 5, 100, 100)
+
+cv2_imshow(dst)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+cv2.imwrite('/content/drive/MyDrive/gaussianblur/deblur/sharpened_filter_image2.png', dst)
