@@ -1,15 +1,12 @@
-ConvBlock
-합성곱(Convolution), 배치 정규화(Batch Normalization), SiLU 활성화 함수를 포함한 합성곱 블록을 정의합니다.
+class ConvBlock(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, stride):
+        super(ConvBlock, self).__init__()
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride=stride, padding=kernel_size//2)
+        self.bn = nn.BatchNorm2d(out_channels)
+        self.silu = nn.SiLU()
 
-        class ConvBlock(nn.Module):
-            def __init__(self, in_channels, out_channels, kernel_size, stride):
-                super(ConvBlock, self).__init__()
-                self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride=stride, padding=kernel_size//2)
-                self.bn = nn.BatchNorm2d(out_channels)
-                self.silu = nn.SiLU()
-        
-            def forward(self, x):
-                return self.silu(self.bn(self.conv(x)))
+    def forward(self, x):
+        return self.silu(self.bn(self.conv(x)))
 
 class SPPF(nn.Module):
     def __init__(self, in_channels):
@@ -17,6 +14,7 @@ class SPPF(nn.Module):
         self.maxpool_1 = nn.MaxPool2d(kernel_size=5, stride=1, padding=2)
         self.maxpool_2 = nn.MaxPool2d(kernel_size=9, stride=1, padding=4)
         self.maxpool_3 = nn.MaxPool2d(kernel_size=13, stride=1, padding=6)
+        # 최종 채널 수는 원본 입력과 3개의 풀링된 결과를 모두 합친 것이므로 4배가 됩니다.
         self.out_channels = in_channels * 4
 
     def forward(self, x):
