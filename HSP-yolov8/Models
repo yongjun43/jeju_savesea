@@ -1,3 +1,6 @@
+# ConvBlock
+## 합성곱(Convolution), 배치 정규화(Batch Normalization), SiLU 활성화 함수를 포함한 합성곱 블록을 정의합니다.
+
 class ConvBlock(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride):
         super(ConvBlock, self).__init__()
