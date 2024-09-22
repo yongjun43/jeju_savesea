@@ -1,0 +1,47 @@
+.frame .div {
+  background-color: #ffffff;
+  overflow: hidden;
+  width: 1920px;
+  height: 1080px;
+  position: relative;
+}
+
+.frame .overlap-group {
+  position: relative;
+  top: 30px;
+  text-align: center;
+  padding-left: 10%;
+  display: block;
+  justify-content: center;
+}
+
+.title{
+  font-weight: 800;
+  color: #1a17f7;
+  font-size: 43px;
+  letter-spacing: 0;
+  line-height: normal;
+  text-align: center;
+}
+  
+.frame .vector {
+  position: absolute;
+  width: 17px;
+  height: 23px;
+  top: 895px;
+  left: 807px;
+}
+
+
+.frame .p {
+  position: absolute;
+  width: 1486px;
+  top: 0;
+  left: 0;
+  font-family: "Inter-ExtraBold", Helvetica;
+  font-weight: 800;
+  color: #1a17f7;
+  font-size: 43px;
+  letter-spacing: 0;
+  line-height: normal;
+}
