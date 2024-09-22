@@ -1,26 +1,4 @@
-# ai-economia
-
-## RAG
-
-
-
-### Requirements
-      datasets
-      install -q openai langchain tiktoken faiss-cpu sentence-transformers langchain-community langchain-core
-      konlpy
-      faiss-cpu
-      langchain_openai
-      openai==0.28
-      from langchain.vectorstores import FAISS
-      faiss
-      numpy
-      openai
-
-
-
-
 ConvBlock
-
 합성곱(Convolution), 배치 정규화(Batch Normalization), SiLU 활성화 함수를 포함한 합성곱 블록을 정의합니다.
 
         class ConvBlock(nn.Module):
