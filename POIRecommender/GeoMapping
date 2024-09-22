@@ -1,0 +1,46 @@
+# 제공된 주소 리스트
+addresses = [
+    "제주특별자치도 제주시 조천읍 조함해안로 302",
+                    ....
+    "제주특별자치도 서귀포시 예래로 320"
+]
+
+# Geocoding 객체 생성 (Nominatim 사용)
+geolocator = Nominatim(user_agent="jeju_geocoder")
+
+# 요청 속도 제한을 위해 RateLimiter 설정 (1초에 1 요청)
+geocode = RateLimiter(geolocator.geocode, min_delay_seconds=1)
+
+# 위도와 경도 리스트 초기화
+latitudes = []
+longitudes = []
+
+# 주소를 하나씩 지오코딩하여 위경도 추출
+for address in addresses:
+    try:
+        location = geocode(address)
+        if location:
+            latitudes.append(location.latitude)
+            longitudes.append(location.longitude)
+            print(f"주소: {address}\n위도: {location.latitude}, 경도: {location.longitude}\n")
+        else:
+            latitudes.append(None)
+            longitudes.append(None)
+            print(f"주소: {address}\n위도: 찾을 수 없음, 경도: 찾을 수 없음\n")
+    except Exception as e:
+        latitudes.append(None)
+        longitudes.append(None)
+        print(f"주소: {address}\n에러 발생: {e}\n")
+
+# 결과를 데이터프레임으로 생성
+df = pd.DataFrame({
+    'address': addresses,
+    'latitude': latitudes,
+    'longitude': longitudes
+})
+
+# 결과를 CSV 파일로 저장
+output_file = 'jeju_addresses_with_coordinates.csv'
+df.to_csv(output_file, index=False, encoding='utf-8-sig')
+
+print(f"모든 주소의 위경도 변환이 완료되었습니다. 결과는 '{output_file}' 파일에 저장되었습니다.")
