@@ -26,16 +26,19 @@
 ---
 
 ## 📂 폴더 구조
+
+```
 jeju_savesea/
-├── HSP-yolov8/ # 위성 기반 쓰레기 탐지 (YOLOv8)
-├── SR/ # 초해상도 복원 (EDSR, HAT, NAFNet 등)
-├── POIRecommender/ # 쓰레기 이동 경로 예측 (POI 기반)
-├── mysite/ # 웹 시각화 프론트엔드
-├── jeju_icon/ # 지도 시각화용 아이콘 모음
-├── assets/ # 결과 이미지 / 예시 샘플
-├── data/ # 샘플 이미지 / 메타데이터
-├── scripts/ # 실행 스크립트 (추론, 시각화)
-└── README.md # 본 문서
+├── HSP-yolov8/              # 위성 기반 쓰레기 탐지 (YOLOv8)
+├── SR/                      # 초해상도 복원 (EDSR, HAT, NAFNet 등)
+├── POIRecommender/          # 쓰레기 이동 경로 예측 (POI 기반)
+├── mysite/                  # 웹 시각화 프론트엔드
+├── jeju_icon/               # 지도 시각화용 아이콘 모음
+├── assets/                  # 결과 이미지 / 예시 샘플
+├── data/                    # 샘플 이미지 / 메타데이터
+├── scripts/                 # 실행 스크립트 (추론, 시각화)
+└── README.md                # 본 문서
+```
 
 
 ---
